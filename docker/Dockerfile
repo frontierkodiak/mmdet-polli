@@ -1,3 +1,4 @@
+# Resetting to OG dockerfile. This won't work on the 3090s.
 ARG PYTORCH="1.6.0"
 ARG CUDA="10.1"
 ARG CUDNN="7"
