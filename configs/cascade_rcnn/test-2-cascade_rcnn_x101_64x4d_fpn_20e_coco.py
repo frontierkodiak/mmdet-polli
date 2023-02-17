@@ -47,6 +47,7 @@ model = dict(
         ]))
 
 work_dir = '/models/work_dirs/DiNat17-super/test-cascade_rcnn_x101_64x4d_fpn_20e_coco/'
+load_from = 'https://download.openmmlab.com/mmdetection/v2.0/cascade_rcnn/cascade_mask_rcnn_x101_64x4d_fpn_mstrain_3x_coco/cascade_mask_rcnn_x101_64x4d_fpn_mstrain_3x_coco_20210719_210311-d3e64ba0.pth'  # noqa
 
 runner = dict(
     type='EpochBasedRunner', # Type of runner to use (i.e. IterBasedRunner or EpochBasedRunner)

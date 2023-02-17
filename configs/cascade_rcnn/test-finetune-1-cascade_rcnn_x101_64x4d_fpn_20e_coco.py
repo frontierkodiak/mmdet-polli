@@ -13,6 +13,10 @@ data = dict(
     val = dict(
         img_prefix = None,
         classes = classes,
+        ann_file = '/local-data/Polli/Datasets/inaturalist2017/train_val/val_2017_bboxes_super.json'),
+    test = dict(
+        img_prefix = None,
+        classes = classes,
         ann_file = '/local-data/Polli/Datasets/inaturalist2017/train_val/val_2017_bboxes_super.json')
     )
 
@@ -46,15 +50,22 @@ model = dict(
             dict(type='Shared2FCBBoxHead', num_classes=13)
         ]))
 
-work_dir = '/models/work_dirs/DiNat17-super/test-cascade_rcnn_x101_64x4d_fpn_20e_coco/'
+work_dir = '/models/work_dirs/DiNat17-super/test-finetune-1-cascade_rcnn_x101_64x4d_fpn_20e_coco/'
+load_from = 'https://download.openmmlab.com/mmdetection/v2.0/cascade_rcnn/cascade_rcnn_x101_64x4d_fpn_20e_coco/cascade_rcnn_x101_64x4d_fpn_20e_coco_20200509_224357-051557b1.pth'  # noqa
 
 runner = dict(
     type='EpochBasedRunner', # Type of runner to use (i.e. IterBasedRunner or EpochBasedRunner)
-    max_epochs=12) # Runner that runs the workflow in total max_epochs. For IterBasedRunner use `max_iters`
+    max_epochs=8) # Runner that runs the workflow in total max_epochs. For IterBasedRunner use `max_iters`
 workflow = [('train', 1)]  # Workflow for runner. [('train', 1)] means there is only one workflow and the workflow named 'train' is executed once. The workflow trains the model by 12 epochs according to the total_epochs.
 
-optimizer = dict(
-    type='SGD', # Type of optimizer to use
-    lr=0.01, # Learning rate
-    momentum=0.9, # Momentum
-    weight_decay=0.0001) # Weight decay
+# learning policy
+lr_config = dict(
+    policy='step',
+    warmup='linear',
+    warmup_iters=500,
+    warmup_ratio=0.001,
+    step=[7])
+
+# lr is set for a batch size of 2 x 1GPU
+optimizer = dict(type='SGD', lr=0.0025, momentum=0.9, weight_decay=0.0001)
+optimizer_config = dict(grad_clip=None)
