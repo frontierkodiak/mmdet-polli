@@ -52,3 +52,9 @@ runner = dict(
     type='EpochBasedRunner', # Type of runner to use (i.e. IterBasedRunner or EpochBasedRunner)
     max_epochs=12) # Runner that runs the workflow in total max_epochs. For IterBasedRunner use `max_iters`
 workflow = [('train', 1)]  # Workflow for runner. [('train', 1)] means there is only one workflow and the workflow named 'train' is executed once. The workflow trains the model by 12 epochs according to the total_epochs.
+
+optimizer = dict(
+    type='SGD', # Type of optimizer to use
+    lr=0.01, # Learning rate
+    momentum=0.9, # Momentum
+    weight_decay=0.0001) # Weight decay
