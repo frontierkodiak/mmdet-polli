@@ -112,10 +112,10 @@ optimizer = dict(
     paramwise_cfg=dict(norm_decay_mult=0., bias_decay_mult=0.))
 optimizer_config = dict(grad_clip=None)
 
-max_epochs = 300
-num_last_epochs = 15
+max_epochs = 60 #300
+num_last_epochs = 3 #15
 resume_from = None
-interval = 10
+interval = 2
 
 # learning policy
 lr_config = dict(
@@ -157,7 +157,7 @@ evaluation = dict(
     interval=interval,
     dynamic_intervals=[(max_epochs - num_last_epochs, 1)],
     metric='bbox')
-log_config = dict(interval=50)
+log_config = dict(interval=2) # 50
 
 # NOTE: `auto_scale_lr` is for automatically scaling LR,
 # USER SHOULD NOT CHANGE ITS VALUES.
