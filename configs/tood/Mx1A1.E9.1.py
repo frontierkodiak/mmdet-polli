@@ -6,6 +6,8 @@ dataset_type = 'CocoDataset'
 data_root = 'data/coco/'
 classes = ('Actinopterygii', 'Amphibia', 'Animalia', 'Arachnida', 'Aves', 'Insecta', 'Mammalia', 'Mollusca', 'Reptilia')
 
+load_from ='/root/.cache/torch/hub/checkpoints/resnet101-63fe2227.pth' # this doesn't work within determined
+
 data = dict(
     samples_per_gpu=1,  # Batch size of a single GPU
     workers_per_gpu=4,  # Worker to pre-fetch data for each single GPU
