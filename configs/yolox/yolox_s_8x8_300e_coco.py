@@ -112,10 +112,10 @@ optimizer = dict(
     paramwise_cfg=dict(norm_decay_mult=0., bias_decay_mult=0.))
 optimizer_config = dict(grad_clip=None)
 
-max_epochs = 60 #300
-num_last_epochs = 3 #15
+max_epochs = 300
+num_last_epochs = 15
 resume_from = None
-interval = 2
+interval = 1
 
 # learning policy
 lr_config = dict(
