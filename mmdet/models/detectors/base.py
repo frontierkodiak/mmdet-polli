@@ -359,6 +359,32 @@ class BaseDetector(BaseModule, metaclass=ABCMeta):
 
         if not (show or out_file):
             return img
+        
+    def crop_results(self, results, img_metas, crop_quadruple):
+        """Crop the results of the detector.
+
+        Args:
+            results (list[Tensor]): The results to be cropped.
+            img_metas (list[dict]): Meta information of each image, e.g.,
+                image size, scaling factor, etc.
+            crop_quadruple (list[int]): The crop quadruple (x1, y1, w, h).
+
+        Returns:
+            list[Tensor]: The cropped results.
+        """
+        x1, y1, w, h = crop_quadruple
+        for i in range(len(results)):
+            img_h, img_w, _ = img_metas[i]['img_shape']
+            scale_factor = img_metas[i]['scale_factor']
+            img_h = int(img_h * scale_factor)
+            img_w = int(img_w * scale_factor)
+            x1 = max(0, x1)
+            y1 = max(0, y1)
+            x2 = min(img_w, x1 + w)
+            y2 = min(img_h, y1 + h)
+            results[i][:, 0::2] = results[i][:, 0::2].clamp(min=x1, max=x2)
+            results[i][:, 1::2] = results[i][:, 1::2].clamp(min=y1, max=y2)
+        return results
 
     def onnx_export(self, img, img_metas):
         raise NotImplementedError(f'{self.__class__.__name__} does '
