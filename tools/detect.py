@@ -4,16 +4,16 @@ from pathlib import Path
 import numpy as np
 from tqdm import tqdm
 
-input_dir = '/lake/Polli/Datasets/imago_RMBL_2020'
+input_dir = '/local-data/Polli/Datasets/backyard/birdfeeders/images' # ~3.5it/s from lake. maybe ~4 from local-data. high variance on local-data.
 recursive = True
 ckpt_path = '/mmdetection/work_dirs/Mx1A1.E11.1tiny.6/epoch_104.pth'
 cfg_path = '/mmdetection/work_dirs/Mx1A1.E11.1tiny.6/Mx1A1.E11.1tiny.6.py'
 
-# output_root = '/local-data/Polli/Outputs/Mx1A1/E11.1tiny.6/backyard/birdfeeders/images' # ~3.5it/s. possibly bad comparison b/c different threshold
-output_root = '/local-data/Polli/Outputs/Mx1A1/E11.1tiny.6/imago_RMBL_2020'
+output_root = '/local-data/Polli/Outputs/Mx1A1/E11.1tiny.6/backyard/birdfeeders/images' # ~3.5it/s. possibly bad comparison b/c different threshold
+#output_root = '/local-data/Polli/Outputs/Mx1A1/E11.1tiny.6/imago_RMBL_2020'
 
 model = init_detector(cfg_path, ckpt_path)#, device='cuda')
-score_thr = 0.8
+score_thr = 0.8 # NOTE: 0.8 is best for backyard birdfeeders
 save_labels_conf = True
 classes = model.CLASSES
 
@@ -56,10 +56,8 @@ def postProcessResult(bbox_result, score_thr=0.5, classes=model.CLASSES):
     bboxes = np.vstack(bbox_result)
     labels_impt = np.where(bboxes[:, -1] > score_thr)[0]
     labels_conf = bboxes[labels_impt, -1]
-
     labels_impt_list = [labels[i] for i in labels_impt]
     labels_class = [classes[i] for i in labels_impt_list]
-    
     return labels_impt, labels_class, bboxes, labels_conf
 
 def infer(imagePath, score_thr=0.5, classes=model.CLASSES): # TODO: Convert to async detector, or bump up batch size.
@@ -83,14 +81,35 @@ def makeOutputPath(imagePath, bboxes, output_root, labels_class, labels_conf, sa
     output_path = output_dir / image_name
     return output_path
 
+inference_fails = []
+crop_fails = []
 for imagePath in tqdm(images):
-    labels_impt, labels_class, bboxes, labels_conf = infer(imagePath, score_thr=score_thr, classes=classes)
+    try:
+        labels_impt, labels_class, bboxes, labels_conf = infer(imagePath, score_thr=score_thr, classes=classes)
+    except:
+        print('Inference failed for image: ', imagePath)
+        inference_fails.append(imagePath)
     if len(labels_impt) > 0:
         k = 0
         for i in range(len(labels_impt)):
             output_path = makeOutputPath(imagePath, bboxes[k], output_root, str(labels_class[k]), labels_conf[k], save_labels_conf)
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            im1 = cropDetection(imagePath, bboxes[k])
+            try:
+                im1 = cropDetection(imagePath, bboxes[k])
             #print(f'Saving {output_path}')
-            im1.save(output_path)
-            k += 1
+                im1.save(output_path)
+                k += 1
+            except:
+                print('Saving crop failed for image: ', imagePath)
+                crop_fails.append(imagePath)
+                k += 1
+    else:
+        pass
+    if len(inference_fails) % 100 == 0 and len(inference_fails) > 0:
+        print('Inference fails: ', len(inference_fails))
+    if len(crop_fails) % 100 == 0 and len(crop_fails) > 0:
+        print('Crop fails: ', len(crop_fails))
+    else:
+        pass
+print('Inference failed for ', len(inference_fails), ' of ', len(images), ' images.')
+print('Crop failed for ', len(crop_fails), ' of ', len(images), ' images.')
