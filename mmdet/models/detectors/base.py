@@ -23,7 +23,7 @@ class BaseDetector(BaseModule, metaclass=ABCMeta):
         """bool: whether the detector has a neck"""
         return hasattr(self, 'neck') and self.neck is not None
 
-    # TODO: these properties need to be carefully handled
+    # NOTE: these properties need to be carefully handled
     # for both single stage & two stage detectors
     @property
     def with_shared_head(self):
@@ -100,7 +100,7 @@ class BaseDetector(BaseModule, metaclass=ABCMeta):
         if num_augs != len(img_metas):
             raise ValueError(f'num of augmentations ({len(img)}) '
                              f'!= num of image metas ({len(img_metas)})')
-        # TODO: remove the restriction of samples_per_gpu == 1 when prepared
+        # NOTE: remove the restriction of samples_per_gpu == 1 when prepared
         samples_per_gpu = img[0].size(0)
         assert samples_per_gpu == 1
 
@@ -149,7 +149,7 @@ class BaseDetector(BaseModule, metaclass=ABCMeta):
             assert imgs[0].size(0) == 1, 'aug test does not support ' \
                                          'inference with batch size ' \
                                          f'{imgs[0].size(0)}'
-            # TODO: support test augmentation for predefined proposals
+            # NOTE: support test augmentation for predefined proposals
             assert 'proposals' not in kwargs
             return self.aug_test(imgs, img_metas, **kwargs)
 

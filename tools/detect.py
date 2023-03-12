@@ -3,10 +3,11 @@ from mmdet.apis import inference_detector, init_detector, show_result_pyplot
 from pathlib import Path
 import numpy as np
 from tqdm import tqdm
+from detectTools import imshow_det_bboxes
 
 input_dir = '/local-data/Polli/Datasets/backyard/birdfeeders/images' # ~3.5it/s from lake. maybe ~4 from local-data. high variance on local-data.
 recursive = True
-ckpt_path = '/mmdetection/work_dirs/Mx1A1.E11.1tiny.6/epoch_104.pth'
+ckpt_path = '/mmdetection/work_dirs/Mx1A1.E11.1tiny.6/epoch_182.pth'
 cfg_path = '/mmdetection/work_dirs/Mx1A1.E11.1tiny.6/Mx1A1.E11.1tiny.6.py'
 
 output_root = '/local-data/Polli/Outputs/Mx1A1/E11.1tiny.6/backyard/birdfeeders/images' # ~3.5it/s. possibly bad comparison b/c different threshold
@@ -16,6 +17,12 @@ model = init_detector(cfg_path, ckpt_path)#, device='cuda')
 score_thr = 0.8 # NOTE: 0.8 is best for backyard birdfeeders
 save_labels_conf = True
 classes = model.CLASSES
+
+
+def infer(imagePath, score_thr=0.5, classes=model.CLASSES): # TODO: Convert to async detector, or bump up batch size.
+    bbox_result = inference_detector(model, imagePath)
+    return bbox_result
+
 
 if not Path(output_root).exists():
     Path(output_root).mkdir(parents=True)
@@ -38,78 +45,68 @@ else:
     images.extend([f for f in Path(input_dir).glob('*.JPEG')])
 images = sorted(images)
 
-def cropDetection(imagePath, bboxes):
-    im = Image.open(imagePath)
-    left = int(bboxes[0])
-    top = int(bboxes[1])
-    right = int(bboxes[2])
-    bottom = int(bboxes[3])
-    im1 = im.crop((left, top, right, bottom))
-    return im1    
-    
-def postProcessResult(bbox_result, score_thr=0.5, classes=model.CLASSES):
-    labels = [
-    np.full(bbox.shape[0], i, dtype=np.int32)\
-    for i, bbox in enumerate(bbox_result)
-    ]
-    labels = np.concatenate(labels)
-    bboxes = np.vstack(bbox_result)
-    labels_impt = np.where(bboxes[:, -1] > score_thr)[0]
-    labels_conf = bboxes[labels_impt, -1]
-    labels_impt_list = [labels[i] for i in labels_impt]
-    labels_class = [classes[i] for i in labels_impt_list]
-    return labels_impt, labels_class, bboxes, labels_conf
-
-def infer(imagePath, score_thr=0.5, classes=model.CLASSES): # TODO: Convert to async detector, or bump up batch size.
-    bbox_result = inference_detector(model, imagePath)
-    labels_impt, labels_class, bboxes, labels_conf = postProcessResult(bbox_result, score_thr=score_thr, classes=classes)
-    return labels_impt, labels_class, bboxes, labels_conf
-
-def makeOutputPath(imagePath, bboxes, output_root, labels_class, labels_conf, save_labels_conf):
-    "Make output path for the image. Each image will be saved in a folder named after the class. If the class folder doesn't exist, it will be created."
-    # Get the image name
-    image_name = imagePath.name
-    # Prefix image name with bbox coordinates and class
-    if save_labels_conf:
-        image_name = f'{int(bboxes[0])}_{int(bboxes[1])}_{int(bboxes[2])}_{int(bboxes[3])}_{labels_class}_{round(float(labels_conf),2)}_{image_name}'
-    else:
-        image_name = f'{int(bboxes[0])}_{int(bboxes[1])}_{int(bboxes[2])}_{int(bboxes[3])}_{labels_class}_{image_name}'
-    # Make output path
-    output_dir = Path(output_root) / labels_class
-    if not output_dir.exists():
-        output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / image_name
-    return output_path
-
-inference_fails = []
-crop_fails = []
 for imagePath in tqdm(images):
-    try:
-        labels_impt, labels_class, bboxes, labels_conf = infer(imagePath, score_thr=score_thr, classes=classes)
-    except:
-        print('Inference failed for image: ', imagePath)
-        inference_fails.append(imagePath)
-    if len(labels_impt) > 0:
-        k = 0
-        for i in range(len(labels_impt)):
-            output_path = makeOutputPath(imagePath, bboxes[k], output_root, str(labels_class[k]), labels_conf[k], save_labels_conf)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            try:
-                im1 = cropDetection(imagePath, bboxes[k])
-            #print(f'Saving {output_path}')
-                im1.save(output_path)
-                k += 1
-            except:
-                print('Saving crop failed for image: ', imagePath)
-                crop_fails.append(imagePath)
-                k += 1
-    else:
-        pass
-    if len(inference_fails) % 100 == 0 and len(inference_fails) > 0:
-        print('Inference fails: ', len(inference_fails))
-    if len(crop_fails) % 100 == 0 and len(crop_fails) > 0:
-        print('Crop fails: ', len(crop_fails))
-    else:
-        pass
-print('Inference failed for ', len(inference_fails), ' of ', len(images), ' images.')
-print('Crop failed for ', len(crop_fails), ' of ', len(images), ' images.')
+    bbox_result = infer(imagePath, score_thr, classes)
+    bboxes = np.vstack(bbox_result)
+    labels = [
+        np.full(bbox.shape[0], i, dtype=np.int32)
+        for i, bbox in enumerate(bbox_result)
+        ]
+    labels = np.concatenate(labels)
+    imshow_det_bboxes(imagePath, bboxes=bboxes, labels=labels, class_names=classes, score_thr=score_thr, show=False, outRoot=output_root, out_file=None)
+
+
+
+
+
+
+
+
+
+
+
+
+
+# def cropDetection(imagePath, bboxes):
+#     im = Image.open(imagePath)
+#     left = int(bboxes[0])
+#     top = int(bboxes[1])
+#     right = int(bboxes[2])
+#     bottom = int(bboxes[3])
+#     im1 = im.crop((left, top, right, bottom))
+#     return im1    
+    
+# def postProcessResult(bbox_result, score_thr=0.5, classes=model.CLASSES):
+#     labels = [
+#     np.full(bbox.shape[0], i, dtype=np.int32)\
+#     for i, bbox in enumerate(bbox_result)
+#     ]
+#     labels = np.concatenate(labels)
+#     bboxes = np.vstack(bbox_result)
+#     labels_impt = np.where(bboxes[:, -1] > score_thr)[0]
+#     labels_conf = bboxes[labels_impt, -1]
+#     labels_impt_list = [labels[i] for i in labels_impt]
+#     labels_class = [classes[i] for i in labels_impt_list]
+#     return labels_impt, labels_class, bboxes, labels_conf
+
+# def makeOutputPath(imagePath, bboxes, output_root, labels_class, labels_conf, save_labels_conf):
+#     "Make output path for the image. Each image will be saved in a folder named after the class. If the class folder doesn't exist, it will be created."
+#     # Get the image name
+#     image_name = imagePath.name
+#     # Prefix image name with bbox coordinates and class
+#     if save_labels_conf:
+#         image_name = f'{int(bboxes[0])}_{int(bboxes[1])}_{int(bboxes[2])}_{int(bboxes[3])}_{labels_class}_{round(float(labels_conf),2)}_{image_name}'
+#     else:
+#         image_name = f'{int(bboxes[0])}_{int(bboxes[1])}_{int(bboxes[2])}_{int(bboxes[3])}_{labels_class}_{image_name}'
+#     # Make output path
+#     output_dir = Path(output_root) / labels_class
+#     if not output_dir.exists():
+#         output_dir.mkdir(parents=True, exist_ok=True)
+#     output_path = output_dir / image_name
+#     return output_path
+
+# def infer(imagePath, score_thr=0.5, classes=model.CLASSES): # TODO: Convert to async detector, or bump up batch size.
+#     bbox_result = inference_detector(model, imagePath) # TODO: Implement modified imshow_det_bboxes from detectionTools. Instead of drawing boxes, crop the image and save it.
+#     # NOTE: It may ultimately be easier to modify the test.py script to do this to take advantage of the batch processing.
+#     labels_impt, labels_class, bboxes, labels_conf = postProcessResult(bbox_result, score_thr=score_thr, classes=classes)
+#     return labels_impt, labels_class, bboxes, labels_conf
