@@ -4,18 +4,39 @@ from pathlib import Path
 import numpy as np
 from tqdm import tqdm
 from detectTools import imshow_det_bboxes
+import argparse
 
-input_dir = '/local-data/Polli/Datasets/backyard/birdfeeders/images' # ~3.5it/s from lake. maybe ~4 from local-data. high variance on local-data.
-recursive = True
-ckpt_path = '/mmdetection/work_dirs/Mx1A1.E11.1tiny.6/epoch_182.pth'
-cfg_path = '/mmdetection/work_dirs/Mx1A1.E11.1tiny.6/Mx1A1.E11.1tiny.6.py'
 
-output_root = '/local-data/Polli/Outputs/Mx1A1/E11.1tiny.6/backyard/birdfeeders/images' # ~3.5it/s. possibly bad comparison b/c different threshold
-#output_root = '/local-data/Polli/Outputs/Mx1A1/E11.1tiny.6/imago_RMBL_2020'
+# input_dir = '/local-data/Polli/Datasets/backyard/birdfeeders/images' # ~3.5it/s from lake. maybe ~4 from local-data. high variance on local-data.
+#output_root = '/local-data/Polli/Outputs/Mx1A1/E11.1tiny.6/backyard/birdfeeders/images' # ~3.5it/s. possibly bad comparison b/c different threshold
+
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('--input_dir', type=str,
+                        default='/local-data/Polli/Datasets/ProjectPheno')
+    parser.add_argument('--recursive', type=bool,
+                        default=True)
+    parser.add_argument('--ckpt_path', type=str,
+                        default='/mmdetection/work_dirs/Mx1A1.E11.1tiny.6/epoch_208.pth')
+    parser.add_argument('--cfg_path', type=str,
+                        default='/mmdetection/work_dirs/Mx1A1.E11.1tiny.6/Mx1A1.E11.1tiny.6.py')
+    parser.add_argument('--output_root', type=str,
+                        default='/local-data/Polli/Outputs/Mx1A1/E11.1tiny.6/ProjectPheno')
+    parser.add_argument('--score_thr', type=float,
+                        default=0.8)
+    args = parser.parse_args()
+    return args
+
+input_dir = parse_args().input_dir
+recursive = parse_args().recursive
+ckpt_path = parse_args().ckpt_path
+cfg_path = parse_args().cfg_path
+output_root = parse_args().output_root
+score_thr = parse_args().score_thr
 
 model = init_detector(cfg_path, ckpt_path)#, device='cuda')
-score_thr = 0.8 # NOTE: 0.8 is best for backyard birdfeeders
-save_labels_conf = True
 classes = model.CLASSES
 
 
