@@ -4,12 +4,12 @@ _base_ = './yolox_s_8x8_300e_coco.py'
 model = dict(
     backbone=dict(deepen_factor=0.67, widen_factor=0.75),
     neck=dict(in_channels=[192, 384, 768], out_channels=192, num_csp_blocks=2),
-    bbox_head=dict(num_classes=9, in_channels=192, feat_channels=192),
+    bbox_head=dict(num_classes=200, in_channels=192, feat_channels=192),
 )
 
-data_root = '/local-data/Polli/Datasets/inaturalist2017/exports/'
+data_root = '/local-data/Polli/Datasets/naBirds/exports/'
 dataset_type = 'CocoDataset'
-classes = ('Actinopterygii', 'Amphibia', 'Animalia', 'Arachnida', 'Aves', 'Insecta', 'Mammalia', 'Mollusca', 'Reptilia')
+classes = '/local-data/Polli/Datasets/naBirds/classes.txt'
 
 img_scale = (640, 640)  # height, width
 
@@ -75,7 +75,7 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=12,
+    samples_per_gpu=8,
     workers_per_gpu=4,
     persistent_workers=True,
     train=train_dataset,
@@ -91,8 +91,3 @@ data = dict(
         img_prefix = data_root + 'val/data/',
         classes = classes,
         pipeline=test_pipeline))
-
-# NOTE: `auto_scale_lr` is for automatically scaling LR,
-# USER SHOULD NOT CHANGE ITS VALUES.
-# base_batch_size = (8 GPUs) x (8 samples per GPU)
-auto_scale_lr = dict(base_batch_size=24)
